@@ -13,11 +13,19 @@ defmodule Teacher.MovieController do
     render(conn, "new.html", changeset: changeset)
   end
 
+  defp send_creation_notification(movie) do
+    movie
+    |> Email.movie_creation_email()
+    |> Mailer.deliver_later()
+  end
+
   def create(conn, %{"movie" => movie_params}) do
     changeset = Movie.changeset(%Movie{}, movie_params)
 
     case Repo.insert(changeset) do
-      {:ok, _movie} ->
+      {:ok, movie} ->
+        send_creation_notification(movie)
+        
         conn
         |> put_flash(:info, "Movie created successfully.")
         |> redirect(to: movie_path(conn, :index))
@@ -51,9 +59,9 @@ defmodule Teacher.MovieController do
     end
   end
 
-  defp send_removal_notification do
-    Email.movie_removal_email() |> Mailer.deliver_later()
-  end
+  defp send_removal_notification(movie) do
+   Email.movie_removal_email(movie) |> Mailer.deliver_later()
+ end
 
   def delete(conn, %{"id" => id}) do
     movie = Repo.get!(Movie, id)
@@ -61,7 +69,7 @@ defmodule Teacher.MovieController do
     # Here we use delete! (with a bang) because we expect
     # it to always work (and if it does not, it will raise).
     Repo.delete!(movie)
-    send_removal_notification()
+    send_removal_notification(movie)
 
     conn
     |> put_flash(:info, "Movie deleted successfully.")

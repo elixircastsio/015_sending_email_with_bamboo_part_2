@@ -1,0 +1,1 @@
+<p><%= @movie.title %> which was released in <%= @movie.year %> was removed.</p>
